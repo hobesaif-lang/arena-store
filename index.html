@@ -24,6 +24,7 @@
   --field:rgba(255,255,255,.05); --accent:#ff9330; --accent2:#ffc15a; --accent-ink:#1d0f00; --glow1:rgba(255,147,48,.30); --glow2:rgba(255,77,109,.22);
   --ok:#3fd08f; --err:#ff6b5b; --wa:#25d366; color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{min-height:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.6;position:relative;overflow-x:hidden}
 .bgfx{position:fixed;inset:0;pointer-events:none;z-index:0;
@@ -73,11 +74,11 @@ legend{padding:0;margin-bottom:8px}
 .opt .box svg{width:22px;height:22px;color:var(--muted);margin-bottom:2px}
 .opt .t{font-family:var(--display);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}
 .opt .s{font-size:11.5px;color:var(--muted)}
-.opt input:checked + .box{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--field));box-shadow:0 0 0 3px var(--glow1)}
-.opt input:checked + .box svg{color:var(--accent)}
-.opt input:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+.opt input:checked ~ .box{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--field));box-shadow:0 0 0 3px var(--glow1)}
+.opt input:checked ~ .box svg{color:var(--accent)}
+.opt input:focus-visible ~ .box{outline:2px solid var(--accent);outline-offset:2px}
 .badge{position:absolute;top:-8px;inset-inline-start:50%;transform:translateX(50%);font-size:10px;font-weight:700;
-  background:linear-gradient(90deg,var(--accent),#ff4d6d);color:#fff;padding:1px 8px;border-radius:999px;white-space:nowrap;z-index:2}
+  background:linear-gradient(90deg,var(--accent),#ff4d6d);color:#fff;padding:1px 8px;border-radius:999px;white-space:nowrap;z-index:2;pointer-events:none}
 .summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-radius:14px;border:1px dashed var(--line);font-size:13px;color:var(--muted)}
 .summary strong{color:var(--fg);font-family:var(--display)}
 .err{color:var(--err);font-size:13px;margin:0;font-weight:500}

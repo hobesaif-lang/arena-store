@@ -60,6 +60,16 @@ input,select,textarea{width:100%;font:inherit;color:var(--fg);background:var(--f
 textarea{min-height:84px;resize:vertical}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--glow1)}
 button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.combo{position:relative}
+.combo input{padding-inline-end:42px}
+.chev{position:absolute;inset-inline-end:14px;top:16px;width:18px;height:18px;color:var(--muted);pointer-events:none}
+.combo ul{position:absolute;z-index:20;top:calc(100% + 6px);inset-inline:0;max-height:264px;overflow:auto;margin:0;padding:6px;list-style:none;
+  background:var(--solid);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.28)}
+.combo li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer}
+.combo li span{color:var(--muted);direction:ltr;font-variant-numeric:tabular-nums;font-size:13px}
+.combo li.on{background:var(--field)}
+.combo li[aria-selected="true"]{color:var(--accent);font-weight:600}
+.combo li.none{color:var(--muted);cursor:default}
 .phone{display:grid;grid-template-columns:100px 1fr;gap:8px;direction:ltr}
 .phone input{direction:ltr;text-align:left;letter-spacing:.03em}
 .hint{font-size:12px;color:var(--muted);margin:0}
@@ -132,14 +142,18 @@ footer{text-align:center;color:var(--muted);font-size:12px}
 
       <div class="field">
         <label class="lbl" for="country">الدولة</label>
-        <select id="country" name="country"></select>
+        <div class="combo">
+          <input id="country" name="country" role="combobox" aria-expanded="false" aria-controls="clist" aria-autocomplete="list" autocomplete="off" placeholder="اكتب اسم الدولة أو اختر من القائمة">
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          <ul id="clist" role="listbox" aria-label="الدول" hidden></ul>
+        </div>
       </div>
 
       <div class="field">
         <label class="lbl" for="phone">رقم الهاتف <small>المفتاح يتغير حسب الدولة</small></label>
         <div class="phone">
           <select id="code" aria-label="مفتاح الدولة"></select>
-          <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="770 123 4567">
+          <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="5X XXX XXXX">
         </div>
       </div>
 
@@ -206,17 +220,44 @@ footer{text-align:center;color:var(--muted);font-size:12px}
 const STORE_WHATSAPP = "966562413688";
 
 const countries = [
- ["العراق","+964"],["السعودية","+966"],["الإمارات","+971"],["الكويت","+965"],["قطر","+974"],["البحرين","+973"],
+ ["السعودية","+966"],["العراق","+964"],["الإمارات","+971"],["الكويت","+965"],["قطر","+974"],["البحرين","+973"],
  ["عُمان","+968"],["الأردن","+962"],["سوريا","+963"],["لبنان","+961"],["فلسطين","+970"],["مصر","+20"],
  ["اليمن","+967"],["ليبيا","+218"],["تونس","+216"],["الجزائر","+213"],["المغرب","+212"],["موريتانيا","+222"],
  ["السودان","+249"],["جنوب السودان","+211"],["الصومال","+252"],["تشاد","+235"]
 ];
 const $ = id => document.getElementById(id);
-const cSel=$("country"), codeSel=$("code");
-cSel.innerHTML='<option value="">اختر الدولة</option>'+countries.map(([n,c])=>`<option value="${n}" data-code="${c}">${n}</option>`).join("");
+const cIn=$("country"), list=$("clist"), codeSel=$("code");
 codeSel.innerHTML=[...new Set(countries.map(c=>c[1]))].map(c=>`<option value="${c}">${c}</option>`).join("");
-cSel.value="العراق"; codeSel.value="+964";
-cSel.addEventListener("change",()=>{const o=cSel.selectedOptions[0]; if(o&&o.dataset.code) codeSel.value=o.dataset.code;});
+const norm=t=>t.normalize("NFKD").replace(/[ً-ْـ]/g,"").replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/\s+/g," ").trim().replace(/^ال/,"");
+let country="", shown=[], active=-1;
+function choose(c){country=c[0]; cIn.value=c[0]; codeSel.value=c[1]; close();}
+function render(q){
+  const n=norm(q||""), d=(q||"").replace(/\D/g,"");
+  shown=countries.filter(([name,code])=>!n&&!d || (n&&norm(name).includes(n)) || (d&&code.includes(d)));
+  active=shown.length?0:-1;
+  list.innerHTML=shown.length? shown.map((c,i)=>`<li role="option" id="opt${i}" data-i="${i}" aria-selected="${c[0]===country}" class="${i===active?"on":""}">${c[0]}<span>${c[1]}</span></li>`).join("")
+    : '<li class="none">ما لگينا دولة بهذا الاسم</li>';
+  list.hidden=false; cIn.setAttribute("aria-expanded","true");
+}
+function close(){list.hidden=true; cIn.setAttribute("aria-expanded","false"); cIn.removeAttribute("aria-activedescendant");}
+function move(k){if(!shown.length)return; active=(active+k+shown.length)%shown.length;
+  [...list.children].forEach((li,i)=>li.classList.toggle("on",i===active));
+  const li=list.children[active]; li.scrollIntoView({block:"nearest"}); cIn.setAttribute("aria-activedescendant",li.id);}
+cIn.addEventListener("focus",()=>{cIn.select(); render("");});
+cIn.addEventListener("click",()=>{ if(list.hidden) render(""); });
+cIn.addEventListener("input",()=>{country=""; render(cIn.value);});
+cIn.addEventListener("keydown",e=>{
+  if(e.key==="ArrowDown"){e.preventDefault(); list.hidden?render(""):move(1);}
+  else if(e.key==="ArrowUp"){e.preventDefault(); move(-1);}
+  else if(e.key==="Enter" && !list.hidden){e.preventDefault(); if(active>=0) choose(shown[active]);}
+  else if(e.key==="Escape"){close();}
+});
+list.addEventListener("pointerdown",e=>{const li=e.target.closest("li[data-i]"); if(li){e.preventDefault(); choose(shown[+li.dataset.i]);}});
+cIn.addEventListener("blur",()=>setTimeout(()=>{
+  if(!country){const m=countries.find(c=>norm(c[0])===norm(cIn.value)); if(m) choose(m); else if(shown.length===1) choose(shown[0]);}
+  close();
+},120));
+choose(countries[0]);
 $("waNum").textContent = STORE_WHATSAPP ? "+"+STORE_WHATSAPP : "(الرقم يُضاف قريباً)";
 
 const pick=n=>(document.querySelector(`input[name=${n}]:checked`)||{}).value;
@@ -225,11 +266,11 @@ document.querySelectorAll('input[name=type],input[name=dur]').forEach(i=>i.addEv
 
 $("f").addEventListener("submit",e=>{
   e.preventDefault();
-  const store=$("store").value.trim(), country=cSel.value, phone=$("phone").value.replace(/\D/g,"").replace(/^0+/,"");
+  const store=$("store").value.trim(), country=country, phone=$("phone").value.replace(/\D/g,"").replace(/^0+/,"");
   const type=pick("type"), dur=pick("dur"), notes=$("notes").value.trim();
   const errs=[];
   if(!store) errs.push("اكتب الاسم");
-  if(!country) errs.push("اختر الدولة");
+  if(!country) errs.push("اختر الدولة من القائمة");
   if(phone.length<6) errs.push("اكتب رقم هاتف صحيح");
   const err=$("err");
   if(errs.length){err.textContent=errs.join(" · ");err.hidden=false;$("result").hidden=true;return;}

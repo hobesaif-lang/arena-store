@@ -270,7 +270,7 @@ document.querySelectorAll('input[name=type],input[name=dur]').forEach(i=>i.addEv
 
 $("f").addEventListener("submit",e=>{
   e.preventDefault();
-  const store=$("store").value.trim(), country=country, phone=$("phone").value.replace(/\D/g,"").replace(/^0+/,"");
+  const store=$("store").value.trim(), phone=$("phone").value.replace(/\D/g,"").replace(/^0+/,"");
   const type=pick("type"), dur=pick("dur"), notes=$("notes").value.trim();
   const errs=[];
   if(!store) errs.push("اكتب الاسم");
@@ -285,6 +285,7 @@ $("f").addEventListener("submit",e=>{
   $("msg").textContent=msg;
   $("wa").href="https://wa.me/"+STORE_WHATSAPP+"?text="+encodeURIComponent(msg);
   $("result").hidden=false;
+  try{ window.location.href=$("wa").href; }catch(_){}
   $("result").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"});
 });
 

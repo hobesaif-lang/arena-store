@@ -102,6 +102,19 @@ pre{white-space:pre-wrap;word-break:break-word;margin:0;background:var(--field);
 .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .safe{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--muted);padding:12px 14px;border-radius:14px;background:var(--field)}
 .safe svg{flex:none;width:18px;height:18px;color:var(--accent);margin-top:2px}
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:end center;background:rgba(5,6,12,.62);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{width:100%;max-width:480px;max-height:88vh;overflow:auto;background:var(--solid);border:1px solid var(--line);border-radius:22px;padding:20px 16px;display:grid;gap:14px;box-shadow:0 30px 60px rgba(0,0,0,.4)}
+.sheet h2{font-family:var(--display);font-size:19px;margin:0}
+.sheet p{margin:0;color:var(--muted);font-size:13.5px}
+.rows{display:grid;gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.rows div{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;font-size:14px}
+.rows div+div{border-top:1px solid var(--line)}
+.rows dt{color:var(--muted)} .rows dd{margin:0;font-weight:600;text-align:left;min-width:0;word-break:break-word}
+.btn.no{background:var(--field);color:var(--fg);border:1px solid var(--line);box-shadow:none}
+@media (min-width:600px){.modal{place-items:center}}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .22s ease}@keyframes up{from{transform:translateY(16px)}to{transform:none}}}
 footer{text-align:center;color:var(--muted);font-size:12px}
 @media (max-width:380px){.durs{grid-template-columns:repeat(2,1fr)}}
 @media (prefers-reduced-motion:no-preference){
@@ -212,6 +225,18 @@ footer{text-align:center;color:var(--muted);font-size:12px}
     </form>
   </section>
 
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" hidden>
+    <div class="sheet">
+      <h2 id="mTitle">هل أنت متأكد من صحة جميع البيانات؟</h2>
+      <p>راجع بياناتك قبل الإرسال. عند الضغط على "نعم" سننقلك إلى واتساب لإرسال الطلب.</p>
+      <dl class="rows" id="mRows"></dl>
+      <div class="row">
+        <button class="btn" type="button" id="yes">نعم، أرسل الطلب</button>
+        <button class="btn no" type="button" id="no">لا، أريد التعديل</button>
+      </div>
+    </div>
+  </div>
+
   <footer>© 2026 أرينا ستور</footer>
 </div>
 
@@ -279,11 +304,23 @@ $("f").addEventListener("submit",e=>{
   const err=$("err");
   if(errs.length){err.textContent=errs.join(" · ");err.hidden=false;$("result").hidden=true;return;}
   err.hidden=true;
-  const msg=["طلب اشتراك جديد - أرينا ستور","",
-    "الاسم: "+store,"الدولة: "+country,"الهاتف: "+codeSel.value+" "+phone,
-    "الجودة: "+type,"المدة: "+dur].concat(notes?["ملاحظات: "+notes]:[]).join("\n");
+  const fields=[["الاسم",store],["الدولة",country],["الهاتف",codeSel.value+" "+phone],["الجودة",type],["المدة",dur]].concat(notes?[["ملاحظات",notes]]:[]);
+  const msg=["طلب اشتراك جديد - أرينا ستور",""].concat(fields.map(([k,v])=>k+": "+v)).join("\n");
   $("msg").textContent=msg;
   $("wa").href="https://wa.me/"+STORE_WHATSAPP+"?text="+encodeURIComponent(msg);
+  const esc=t=>t.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  $("mRows").innerHTML=fields.map(([k,v])=>`<div><dt>${k}</dt><dd${k==="الهاتف"?' dir="ltr"':""}>${esc(v)}</dd></div>`).join("");
+  openModal();
+});
+
+let lastFocus=null;
+function openModal(){lastFocus=document.activeElement; $("modal").hidden=false; $("yes").focus();}
+function closeModal(){$("modal").hidden=true; if(lastFocus) lastFocus.focus();}
+$("no").addEventListener("click",closeModal);
+$("modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeModal(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("modal").hidden) closeModal(); });
+$("yes").addEventListener("click",()=>{
+  $("modal").hidden=true;
   $("result").hidden=false;
   try{ window.location.href=$("wa").href; }catch(_){}
   $("result").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"});
